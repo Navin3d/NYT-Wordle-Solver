@@ -6,15 +6,27 @@ class NYTWordleSolver:
         self.green = chr(0x1F7E9)
         self.yellow = chr(0x1F7E8)
         self.white = chr(0x2B1C)
-        self.attempts_left = 5
         self.solution = self._get_solution()
 
-    def _has_attempts(self):
-        return self.attempts_left > 0
+    def _get_solution(self) -> str:
+        date = datetime.date.today()
+        url = f"https://www.nytimes.com/svc/wordle/v2/{date:%Y-%m-%d}.json"
+        response = requests.get(url).json()
+        return response['solution']
+
+    def get_grid(self, num_array):
+        grid = ""
+        for letter in num_array:
+            if letter == 0:
+                grid += self.white
+            elif letter == 1:
+                grid += self.green
+            else:
+                grid += self.yellow
+        grid += '\n'
+        return grid
 
     def attempt(self, word):
-        assert self._has_attempts(), "No Attempts left"
-
         print("Attempting to solve word '{}'".format(word))
 
         # Wordle scoring logic - return array [0=white, 1=yellow, 2=green]
@@ -37,11 +49,4 @@ class NYTWordleSolver:
                 result[i] = 2  # Yellow
                 letter_count[guess_char] -= 1
 
-        self.attempts_left -= 1
         return result
-
-    def _get_solution(self) -> str:
-        date = datetime.date.today()
-        url = f"https://www.nytimes.com/svc/wordle/v2/{date:%Y-%m-%d}.json"
-        response = requests.get(url).json()
-        return response['solution']
