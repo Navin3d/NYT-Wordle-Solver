@@ -5,12 +5,7 @@ This is an simple AI Agent solves wordle and share it in social media using MCP 
 ![img.png](img.png)
 
 ### Mermaid Diagram:
-```
----
-config:
-  flowchart:
-    curve: linear
----
+```mermaid
 graph TD;
 	__start__([<p>__start__</p>]):::first
 	GUESS(GUESS)
