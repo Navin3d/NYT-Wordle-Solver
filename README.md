@@ -31,3 +31,4 @@ graph TD;
 - [Wordle Solver](https://www.nytimes.com/svc/wordle/v2/2026-01-01.json)
 - [Fast MCP](https://gofastmcp.com/getting-started/quickstart)
 - [Mermaid to PIC](https://www.mermaidflow.app/editor)
+- [Excali Draw](https://excalidraw.com/)
