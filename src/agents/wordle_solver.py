@@ -22,7 +22,6 @@ def guess_validate_node(state: WordleState):
     guess = state["attempted_words"][-1]
     print("Guess '{}'".format(state["attempted_words"]))
     validation = wordle.attempt(guess)
-    print("validation, ", validation, True if validation is [1, 1, 1, 1, 1] else False)
     right_pos, wrong_pos, not_in_word = wordle.calculate_wordle_feedback(guess, validation)
 
     grid = state["solution_grid"] + wordle.get_grid(validation)
@@ -31,6 +30,6 @@ def guess_validate_node(state: WordleState):
         "letters_in_wrong_position": wrong_pos,
         "letters_not_in_word": not_in_word,
         "attempted_words_results": [validation],
-        "solved": True if validation is [1, 1, 1, 1, 1] else False,
+        "solved": True if validation == [1, 1, 1, 1, 1] else False,
         "solution_grid": grid,
     }

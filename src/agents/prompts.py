@@ -19,11 +19,11 @@ _wordle_guessing_prompt = ChatPromptTemplate.from_messages([
             ### WORDLE RULES (NYT VERSION):
             - 5-letter words lower case letter only.
             - 5 guesses maximum.
-            - Feedback: 🟩 (green = correct letter, correct position), 🟨 (yellow = correct letter, wrong position), ⬜ (gray = letter not in word).
+            - Feedback: 🟩 (1 = correct letter, correct position), 🟨 (2 = correct letter, wrong position), ⬜ (0 = letter not in word).
             - **Hard Mode rules are enforced**: Every guess MUST incorporate all previous hints:
                 - 0 = White (letters must stay in their exact positions)
                 - 1 = Green (letter in solution, CORRECT position) 
-                - 2 = Yellow (letters must be used in new positions (not in any previously yellow/gray positions for that letter)
+                - 2 = Yellow (letters must be used in new positions (not in any previously 2/0 positions for that letter)
             - Guesses must be valid 5-letter English words (from the NYT's allowed guess list).
             
             CURRENT STATE:
@@ -32,12 +32,6 @@ _wordle_guessing_prompt = ChatPromptTemplate.from_messages([
             letters_in_right_position: {letters_in_right_position}
             letters_in_wrong_position: {letters_in_wrong_position}
             letters_not_in_word: {letters_not_in_word}
-            
-            ### CURRENT STATE (provided in each query):
-            - Previous guesses and their exact feedback patterns.
-            - Known green positions (must be locked in).
-            - Known yellow letters (must include, in compliant positions).
-            - Excluded letters (gray — never use).
             
             ### STRATEGY PRIORITIES (Optimal Play):
             1. **Strictly obey Hard Mode constraints** — every guess must be compatible with all prior feedback.
@@ -51,7 +45,7 @@ _wordle_guessing_prompt = ChatPromptTemplate.from_messages([
             
             ### STEP-BY-STEP REASONING REQUIRED:
             For each response:
-            - List the known constraints (greens fixed, must-include yellows, banned grays).
+            - List the known constraints (1 fixed, must-include 2, banned 0).
             - Estimate remaining possible words (if few, list them; if many, note approximate count).
             - Explain why your chosen guess maximizes information (e.g., tests key vowels/consonants, eliminates large branches).
             - If only 1 possibility remains → guess it to win.
