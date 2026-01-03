@@ -37,6 +37,7 @@ print(graph.get_graph().draw_mermaid())
 
 inputs = {
     "attempted_words": [],
+    "attempted_words_results": [],
     "letters_in_right_position": [],
     "letters_in_wrong_position": [],
     "letters_not_in_word": [],

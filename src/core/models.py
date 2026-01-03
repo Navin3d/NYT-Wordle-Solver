@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 class WordleState(TypedDict):
     attempted_words: Annotated[list[str], add]
+    attempted_words_results: Annotated[list[list[int]], add]
     letters_in_right_position: list[str]
     letters_in_wrong_position: list[str]
     letters_not_in_word: list[str]

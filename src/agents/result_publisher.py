@@ -42,7 +42,7 @@ async def result_publish_node(state: WordleState):
         MessagesPlaceholder("agent_scratchpad"),
     ]))
     agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-    result = await agent_executor.ainvoke({ "input": state["solution_grid"]})
+    await agent_executor.ainvoke({ "input": state["solution_grid"] })
     # result = await agent_executor.ainvoke({
     #     "solved": state["solved"],
     #     "letters_in_right_position": state["letters_in_right_position"],
@@ -50,7 +50,6 @@ async def result_publish_node(state: WordleState):
     #     "letters_not_in_word": state["letters_not_in_word"],
     #     "attempts_left": state["remaining_attempts"],
     # })
-    print(result)
     return {}
 
 

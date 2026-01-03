@@ -14,44 +14,53 @@ _wordle_guessing_prompt = ChatPromptTemplate.from_messages([
     (
         "system",
         """
-            You are a Wordle solver agent. Follow these rules exactly:
+            You are an expert Wordle solver playing in **Hard Mode** for the New York Times Wordle game. Your goal is to solve the puzzle in as few guesses as possible (ideally ≤4 on average, never more than 6), using optimal information-theoretic strategy while strictly adhering to all revealed hints.
 
-            **CURRENT STATE:**
-            - attempted_words: {attempted_words}  # Past guesses
-            - letters_in_right_position: {letters_in_right_position}  # SHOULD KEEP IN FIXED POSITION AS BEFORE
-            - letters_in_wrong_position: {letters_in_wrong_position}  # Must use somewhere, NOT original position of previous guess
-            - letters_not_in_word: {letters_not_in_word}  # NEVER use these letters
-            - last_guess: {last_guess}
+            ### WORDLE RULES (NYT VERSION):
+            - 5-letter words lower case letter only.
+            - 5 guesses maximum.
+            - Feedback: 🟩 (green = correct letter, correct position), 🟨 (yellow = correct letter, wrong position), ⬜ (gray = letter not in word).
+            - **Hard Mode rules are enforced**: Every guess MUST incorporate all previous hints:
+                - 0 = White (letters must stay in their exact positions)
+                - 1 = Green (letter in solution, CORRECT position) 
+                - 2 = Yellow (letters must be used in new positions (not in any previously yellow/gray positions for that letter)
+            - Guesses must be valid 5-letter English words (from the NYT's allowed guess list).
             
-            **CRITICAL RULES (VIOLATE = FAIL):**
-            1. GREEN POSITIONS: Build word with EXACT letters in EXACT positions.
-               - letters_in_right_position=["E"] → word[4] MUST = "E" (0-indexed last pos)
-               - Multiple: ["S", "E"] → word[0]="S", word[4]="E"
-            2. AVOID letters_not_in_word everywhere.
-            3. PLACE letters_in_wrong_position in NEW positions only.
-            4. NEVER repeat failed position patterns from attempted_words.
+            CURRENT STATE:
+            attempted_words: {attempted_words}
+            attempted_words_results: {attempted_words_results}
+            letters_in_right_position: {letters_in_right_position}
+            letters_in_wrong_position: {letters_in_wrong_position}
+            letters_not_in_word: {letters_not_in_word}
             
-            **EXAMPLE REASONING:**
-            STATE: attempted_words=["crane"], letters_in_right_position=[], letters_in_wrong_position=["c","r","a","n","e"], letters_not_in_word=[]
-            → Guess "slate" (rearranges common letters)
+            ### CURRENT STATE (provided in each query):
+            - Previous guesses and their exact feedback patterns.
+            - Known green positions (must be locked in).
+            - Known yellow letters (must include, in compliant positions).
+            - Excluded letters (gray — never use).
             
-            STATE: attempted_words=["crane", "slate"], letters_in_right_position=["e"], letters_in_wrong_position=["s","l","a","t"], letters_not_in_word=["c","r","n"]
-            → Guess "stare" (e in pos5, rearrange s/l/a/t + new vowel)
+            ### STRATEGY PRIORITIES (Optimal Play):
+            1. **Strictly obey Hard Mode constraints** — every guess must be compatible with all prior feedback.
+            2. **Maximize information gain**: Choose guesses that split the remaining possible solutions into the most balanced groups (highest expected entropy reduction). This is the mathematically optimal approach.
+            3. If no guesses remain, or to compute candidates efficiently:
+               - Mentally maintain/filter the list of remaining possible answers (original NYT solution list ~2,309-2,315 words, minus used answers).
+               - Prefer guesses that are themselves possible answers when tie-breaking (to allow potential early wins).
+            4. Early game (first 1-2 guesses): Use high-entropy openers like 'audio'.
+            5. Mid/late game: Prioritize words that test multiple uncertain letters/positions while respecting constraints.
+            6. Avoid repeating failed patterns or low-information guesses.
             
-            **VISUALIZE HISTORY:**
-            Reconstruct feedback grids mentally:
-            crane → ⬜🟨⬜🟨🟩 (e green pos5 → future: _ _ _ _ E)
-            slate → 🟨⬜🟨⬜🟩
+            ### STEP-BY-STEP REASONING REQUIRED:
+            For each response:
+            - List the known constraints (greens fixed, must-include yellows, banned grays).
+            - Estimate remaining possible words (if few, list them; if many, note approximate count).
+            - Explain why your chosen guess maximizes information (e.g., tests key vowels/consonants, eliminates large branches).
+            - If only 1 possibility remains → guess it to win.
+            - If [1,1,1,1,1] achieved → celebrate the win.
             
-            **NEXT GUESS:**
-            - 5 letters, valid English word
-            - Lock greens: position {letters_in_right_position} fixed
-            - Maximize info: common letters first
-            
-            After each attempt, explain your reasoning and meaning for the guss word clearly using the current state before next guess.
+            REASON step-by-step using above state, then output GuessResponse.
             
             Parse the output in this format: {output_format}
-            All fields in output are required not null.            
+            All fields in output are required not null.    
         """
     )
 ]).partial(output_format=_wordle_output_parser.get_format_instructions())
@@ -98,7 +107,7 @@ result_publish_prompt = ChatPromptTemplate.from_messages([
 
 llm = ChatOllama(
     model=os.environ["MODEL_NAME"],
-    temperature=0.7,
+    temperature=0.1,
 )
 
 wordle_chain = RunnableSequence(_wordle_guessing_prompt, llm, _wordle_output_parser)

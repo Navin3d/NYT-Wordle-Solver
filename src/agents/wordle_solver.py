@@ -10,8 +10,7 @@ def word_guess_node(state: WordleState):
         "letters_in_right_position": state["letters_in_right_position"],
         "letters_in_wrong_position": state["letters_in_wrong_position"],
         "letters_not_in_word": state["letters_not_in_word"],
-        "remaining_attempts": state["remaining_attempts"],
-        "last_guess": state["attempted_words"][-1] if len(state["attempted_words"]) > 1 else "",
+        "attempted_words_results": state["attempted_words_results"],
         # "len_letters_in_right_position": len(state["letters_in_right_position"]),
     })
     return {
@@ -31,6 +30,7 @@ def guess_validate_node(state: WordleState):
         "letters_in_right_position": right_pos,
         "letters_in_wrong_position": wrong_pos,
         "letters_not_in_word": not_in_word,
+        "attempted_words_results": [validation],
         "solved": True if validation is [1, 1, 1, 1, 1] else False,
         "solution_grid": grid,
     }
