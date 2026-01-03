@@ -1,10 +1,14 @@
 import asyncio
 
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from langchain_ollama import ChatOllama
+from langchain_classic.agents import AgentExecutor
+from langchain_classic.agents import create_tool_calling_agent
 
+from src.agents.prompts import llm, result_publish_prompt
+from src.core.models import WordleState
 
-mcp_client = MultiServerMCPClient(
+_mcp_client = MultiServerMCPClient(
     {
         "result_publisher": {
             "transport": "http",
@@ -13,18 +17,70 @@ mcp_client = MultiServerMCPClient(
     }
 )
 
-async def test():
-    result_publisher = ChatOllama(
-        model="gpt-oss:latest",
-        temperature=0.8,
-    )
+NODE_NAMES = {
+    "guess": "GUESS",
+    "validate": "VALIDATE",
+    "result_publish": "PUBLISH",
+}
+tools = asyncio.run(_mcp_client.get_tools())
 
-    tools = await mcp_client.get_tools()
-
+async def result_publish_node(state: WordleState):
     print(tools)
+    print(state)
+    agent = create_tool_calling_agent(llm=llm, tools=tools, prompt=ChatPromptTemplate.from_messages([
+        (
+            "system",
+            '''
+                You are an helpful ai agent
 
-    result_publisher = result_publisher.bind_tools(tools)
+                Call MCP tools as said:
+                   - `send_message_to_slack(message)`
+                   - `post_comment_in_nyt(message)`
+            '''
+        ),
+        ("human", "just send whatever i give u it consists of colors input: {input}"),
+        MessagesPlaceholder("agent_scratchpad"),
+    ]))
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    result = await agent_executor.ainvoke({ "input": state["solution_grid"]})
+    # result = await agent_executor.ainvoke({
+    #     "solved": state["solved"],
+    #     "letters_in_right_position": state["letters_in_right_position"],
+    #     "letters_in_wrong_position": state["letters_in_wrong_position"],
+    #     "letters_not_in_word": state["letters_not_in_word"],
+    #     "attempts_left": state["remaining_attempts"],
+    # })
+    print(result)
+    return {}
 
-    print(result_publisher.invoke("publish 'hi' in slack."))
 
-asyncio.run(test())
+
+
+
+
+
+async def trial():
+    tools = await _mcp_client.get_tools()
+    print(tools)
+    prompt = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            '''
+                You are an helpful ai agent
+                
+                Call MCP tools as said:
+                   - `send_message_to_slack(grid_message)`
+                   - `post_comment_in_nyt(comment_message)`
+            '''
+        ),
+        ("human", "{input}"),
+        MessagesPlaceholder("agent_scratchpad"),
+    ])
+    agent = create_tool_calling_agent(llm=llm, tools=tools, prompt=prompt)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    result = await agent_executor.ainvoke({ "input": "publish 'hi' in slack."})
+    print(result)
+
+
+if __name__ == "__main__":
+    asyncio.run(trial())

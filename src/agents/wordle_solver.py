@@ -1,64 +1,36 @@
-from typing import TypedDict, Annotated
+from src.agents.prompts import wordle_chain
+from src.core.models import WordleState, GuessResponse
+from src.core.nyt_wordle import NYTWordleSolver
 
-from langchain_ollama import ChatOllama
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.constants import START, END
-from langgraph.graph.message import add_messages
-from langgraph.graph.state import StateGraph
+wordle = NYTWordleSolver()
 
-# from src.agents.tools import attempt_wordle_guess
+def word_guess_node(state: WordleState):
+    output: GuessResponse = wordle_chain.invoke({
+        "attempted_words": state["attempted_words"],
+        "letters_in_right_position": state["letters_in_right_position"],
+        "letters_in_wrong_position": state["letters_in_wrong_position"],
+        "letters_not_in_word": state["letters_not_in_word"],
+        "remaining_attempts": state["remaining_attempts"],
+        "last_guess": state["attempted_words"][-1] if len(state["attempted_words"]) > 1 else "",
+        # "len_letters_in_right_position": len(state["letters_in_right_position"]),
+    })
+    return {
+        "attempted_words": [output.word],
+        "remaining_attempts": 1,
+        "solved": False,
+    }
+def guess_validate_node(state: WordleState):
+    guess = state["attempted_words"][-1]
+    print("Guess '{}'".format(state["attempted_words"]))
+    validation = wordle.attempt(guess)
+    print("validation, ", validation, True if validation is [1, 1, 1, 1, 1] else False)
+    right_pos, wrong_pos, not_in_word = wordle.calculate_wordle_feedback(guess, validation)
 
-
-class WordleState(TypedDict):
-    attempted_words: Annotated[list[str], add_messages]
-    letters_in_right_position: Annotated[list[str], ""]
-    letters_in_wrong_position: Annotated[list[str], ""]
-    letters_not_in_word: Annotated[list[str], ""]
-    remaining_attempts: Annotated[int, ""]
-    solved: Annotated[bool, ""]
-    solution_grid: Annotated[str, ""]
-
-_llm = ChatOllama(
-    model="llama3:70b-instruct-q2_K",
-    temperature=0.8,
-)
-# _llm = _llm.bind_tools([attempt_wordle_guess()])
-
-
-def word_guess_node(state: WordleState) -> WordleState:
-    return state
-
-def guess_validate_node(state: WordleState) -> WordleState:
-    return state
-
-def result_publish_node(state: WordleState) -> WordleState:
-    return state
-
-
-NODE_NAMES = {
-    "guess": "GUESS",
-    "validate": "VALIDATE",
-    "result_publish": "PUBLISH",
-}
-
-graph_builder = StateGraph(state_schema=WordleState)
-graph_builder.add_node(NODE_NAMES["guess"], word_guess_node)
-graph_builder.add_node(NODE_NAMES["validate"], guess_validate_node)
-graph_builder.add_node(NODE_NAMES["result_publish"], result_publish_node)
-
-graph_builder.add_conditional_edges(NODE_NAMES["guess"], guess_validate_node, path_map={
-    # NODE_NAMES["guess"]:NODE_NAMES["validate"],
-    # NODE_NAMES["validate"]:NODE_NAMES["guess"],
-    # NODE_NAMES["validate"]:NODE_NAMES["result_publish"],
-})
-
-graph_builder.add_edge(START, NODE_NAMES["guess"])
-graph_builder.add_edge(NODE_NAMES["guess"], NODE_NAMES["validate"])
-graph_builder.add_edge(NODE_NAMES["validate"], NODE_NAMES["guess"])
-graph_builder.add_edge(NODE_NAMES["validate"], NODE_NAMES["result_publish"])
-graph_builder.add_edge(NODE_NAMES["result_publish"], END)
-
-memory = InMemorySaver()
-graph = graph_builder.compile(memory)
-
-print(graph.get_graph().draw_mermaid())
+    grid = state["solution_grid"] + wordle.get_grid(validation)
+    return {
+        "letters_in_right_position": right_pos,
+        "letters_in_wrong_position": wrong_pos,
+        "letters_not_in_word": not_in_word,
+        "solved": True if validation is [1, 1, 1, 1, 1] else False,
+        "solution_grid": grid,
+    }
