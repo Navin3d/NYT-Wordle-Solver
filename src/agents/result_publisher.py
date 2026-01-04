@@ -25,7 +25,6 @@ NODE_NAMES = {
 tools = asyncio.run(_mcp_client.get_tools())
 
 async def result_publish_node(state: WordleState):
-    print(tools)
     print(state)
     agent = create_tool_calling_agent(llm=llm, tools=tools, prompt=ChatPromptTemplate.from_messages([
         (
@@ -43,13 +42,6 @@ async def result_publish_node(state: WordleState):
     ]))
     agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
     await agent_executor.ainvoke({ "input": state["solution_grid"] })
-    # result = await agent_executor.ainvoke({
-    #     "solved": state["solved"],
-    #     "letters_in_right_position": state["letters_in_right_position"],
-    #     "letters_in_wrong_position": state["letters_in_wrong_position"],
-    #     "letters_not_in_word": state["letters_not_in_word"],
-    #     "attempts_left": state["remaining_attempts"],
-    # })
     return {}
 
 

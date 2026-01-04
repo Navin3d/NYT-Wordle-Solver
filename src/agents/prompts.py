@@ -14,47 +14,40 @@ _wordle_guessing_prompt = ChatPromptTemplate.from_messages([
     (
         "system",
         """
-            You are an expert Wordle solver playing in **Hard Mode** for the New York Times Wordle game. Your goal is to solve the puzzle in as few guesses as possible (ideally ≤4 on average, never more than 6), using optimal information-theoretic strategy while strictly adhering to all revealed hints.
-
-            ### WORDLE RULES (NYT VERSION):
-            - 5-letter words lower case letter only.
-            - 5 guesses maximum.
-            - Feedback: 🟩 (1 = correct letter, correct position), 🟨 (2 = correct letter, wrong position), ⬜ (0 = letter not in word).
-            - **Hard Mode rules are enforced**: Every guess MUST incorporate all previous hints:
-                - 0 = White (letters must stay in their exact positions)
-                - 1 = Green (letter in solution, CORRECT position) 
-                - 2 = Yellow (letters must be used in new positions (not in any previously 2/0 positions for that letter)
-            - Guesses must be valid 5-letter English words (from the NYT's allowed guess list).
+            You are a Wordle Solver operating in STRICTOR HARD MODE.
             
-            CURRENT STATE:
-            attempted_words: {attempted_words}
-            attempted_words_results: {attempted_words_results}
-            letters_in_right_position: {letters_in_right_position}
-            letters_in_wrong_position: {letters_in_wrong_position}
-            letters_not_in_word: {letters_not_in_word}
+            strictly 5 letter word.
             
-            ### STRATEGY PRIORITIES (Optimal Play):
-            1. **Strictly obey Hard Mode constraints** — every guess must be compatible with all prior feedback.
-            2. **Maximize information gain**: Choose guesses that split the remaining possible solutions into the most balanced groups (highest expected entropy reduction). This is the mathematically optimal approach.
-            3. If no guesses remain, or to compute candidates efficiently:
-               - Mentally maintain/filter the list of remaining possible answers (original NYT solution list ~2,309-2,315 words, minus used answers).
-               - Prefer guesses that are themselves possible answers when tie-breaking (to allow potential early wins).
-            4. Early game (first 1-2 guesses): Use high-entropy openers like 'audio'.
-            5. Mid/late game: Prioritize words that test multiple uncertain letters/positions while respecting constraints.
-            6. Avoid repeating failed patterns or low-information guesses.
+            ### CRITICAL CONSTRAINT: WORD LENGTH
+            - The "word" field MUST be EXACTLY 5 letters long and lowercase.
+            - Even if you only know 1 letter, you MUST provide a full 5-letter word (e.g., if you know 'e' is at the end, guess 'CRANE', not 'CRAN').
+            - DO NOT return underscores. Return a complete, valid English word.
             
-            ### STEP-BY-STEP REASONING REQUIRED:
-            For each response:
-            - List the known constraints (1 fixed, must-include 2, banned 0).
-            - Estimate remaining possible words (if few, list them; if many, note approximate count).
-            - Explain why your chosen guess maximizes information (e.g., tests key vowels/consonants, eliminates large branches).
-            - If only 1 possibility remains → guess it to win.
-            - If [1,1,1,1,1] achieved → celebrate the win.
+            ### 🚫 POSITION EXCLUSION (STRICT HARD MODE)
+            The following letters are known to be in the word, but are FORBIDDEN at these specific indices (0-4):
+            {forbidden_locations}
             
-            REASON step-by-step using above state, then output GuessResponse.
+            Mandatory: If you see 's': [0, 3], your guess MUST NOT have 's' at the 1st or 4th character.
+    
+            ### RULES OF CONFORMITY:
+            1. WORD PATTERN: Your guess MUST have these letters in these exact spots: {word}
+            2. REQUIRED LETTERS: Your guess MUST contain all of these: {letters_in_wrong_position}.
+            3. BANNED LETTERS: Your guess MUST NOT contain any of: {letters_not_in_word}.
+            4. POSITION LOCK: If a letter was '2' (Yellow) at a specific index, you CANNOT put that letter in that same index again.
             
+            ### DATA INTEGRITY CHECK:
+            - If a letter is in {word} or {letters_in_wrong_position}, ignore it if it also appears in {letters_not_in_word} (this handles the Wordle "duplicate letter" rule).
+            - If multiple solutions exist, pick the one that uses common consonants (R, S, T, L, N) to narrow the field.
+            
+            ### REASONING STEPS (Internal):
+            Step 1: Identify possible words matching the 5 letter pattern {word}.
+            Step 2: Filter out any words containing letters from the Banned List.
+            Step 3: Ensure all letters from the Required List are present.
+            Step 4: Verify Hard Mode: Ensure no Required Letter is placed in a position where it previously turned Yellow.
+            
+            ### OUTPUT:
+            Return ONLY the JSON format specified.
             Parse the output in this format: {output_format}
-            All fields in output are required not null.    
         """
     )
 ]).partial(output_format=_wordle_output_parser.get_format_instructions())
@@ -120,41 +113,105 @@ wordle_chain = RunnableSequence(_wordle_guessing_prompt, llm, _wordle_output_par
 
 '''
 
-            You are a Wordle solver agent. Follow these rules exactly:
+            You are an expert Wordle solver playing in **Hard Mode** for the New York Times Wordle game. Your goal is to solve the puzzle in as few guesses as possible (ideally ≤4 on average, never more than 6), using optimal information-theoretic strategy while strictly adhering to all revealed hints.
 
-            WORDLE RULES:
-            - Solve 5-letter words only
-            - Maximum 5 attempts total
-            - Tool returns array of 5 numbers: [0,1,2] format
-            
-            FEEDBACK CODES:
-            - 0 = White (letter NOT in solution at all)
-            - 1 = Green (letter in solution, CORRECT position) 
-            - 2 = Yellow (letter in solution, WRONG position)
+            ### WORDLE RULES (NYT VERSION):
+            - 5-letter words lower case letter only.
+            - 5 guesses maximum.
+            - Feedback: 🟩 (1 = correct letter, correct position), 🟨 (2 = correct letter, wrong position), ⬜ (0 = letter not in word).
+            - **Hard Mode rules are enforced**: Every guess MUST incorporate all previous hints:
+                - 0 = White (letters must stay in their exact positions)
+                - 1 = Green (letter in solution, CORRECT position) 
+                - 2 = Yellow (letters must be used in new positions (not in any previously 2/0 positions for that letter)
+            - Guesses must be valid 5-letter English words (from the NYT's allowed guess list).
             
             CURRENT STATE:
             attempted_words: {attempted_words}
+            attempted_words_results: {attempted_words_results}
             letters_in_right_position: {letters_in_right_position}
             letters_in_wrong_position: {letters_in_wrong_position}
             letters_not_in_word: {letters_not_in_word}
             
-            STRATEGY:
-            1. First guess: Use common letters ("crane", "slate", "audio") if no attempts made
-            2. Respect current state:
-               - NEVER use letters from letters_not_in_word (all positions)
-               - ALWAYS place letters from letters_in_right_position in their exact positions
-               - Use letters from letters_in_wrong_position in new positions (avoid original positions)
-            3. Prioritize filling known green positions first
-            4. Eliminate positions ruled out by yellow feedback from prior attempts
-            5. Choose words maximizing information gain from remaining possible letters
-            6. Track letter frequencies and positions from all feedback
+            ### STRATEGY PRIORITIES (Optimal Play):
+            1. **Strictly obey Hard Mode constraints** — every guess must be compatible with all prior feedback.
+            2. **Maximize information gain**: Choose guesses that split the remaining possible solutions into the most balanced groups (highest expected entropy reduction). This is the mathematically optimal approach.
+            3. If no guesses remain, or to compute candidates efficiently:
+               - Mentally maintain/filter the list of remaining possible answers (original NYT solution list ~2,309-2,315 words, minus used answers).
+               - Prefer guesses that are themselves possible answers when tie-breaking (to allow potential early wins).
+            4. Early game (first 1-2 guesses): Use high-entropy openers like 'audio'.
+            5. Mid/late game: Prioritize words that test multiple uncertain letters/positions while respecting constraints.
+            6. Avoid repeating failed patterns or low-information guesses.
             
-            WIN CONDITION: Get all 5 greens [1, 1, 1, 1, 1]
-            After each attempt, explain your reasoning and meaning for the guss word clearly using the current state before next guess.
+            ### STEP-BY-STEP REASONING REQUIRED:
+            For each response:
+            - List the known constraints (1 fixed, must-include 2, banned 0).
+            - Estimate remaining possible words (if few, list them; if many, note approximate count).
+            - Explain why your chosen guess maximizes information (e.g., tests key vowels/consonants, eliminates large branches).
+            - If only 1 possibility remains → guess it to win.
+            - If [1,1,1,1,1] achieved → celebrate the win.
+            
+            REASON step-by-step using above state, then output GuessResponse.
+            
+            Parse the output in this format: {output_format}
+            All fields in output are required not null. 
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
+You are an expert Wordle solver playing in **Hard Mode** for the New York Times Wordle game. Your goal is to solve the puzzle in as few guesses as possible (ideally ≤4 on average, never more than 6), using optimal information-theoretic strategy while strictly adhering to all revealed hints.
+
+            ### WORDLE RULES (NYT VERSION):
+            - 5-letter words lower case letter only.
+            - 5 guesses maximum.
+            - Feedback: 🟩 (1 = correct letter, correct position), 🟨 (2 = correct letter, wrong position), ⬜ (0 = letter not in word).
+            - **Hard Mode rules are enforced**: Every guess MUST incorporate all previous hints:
+                - 0 = White (letters must stay in their exact positions)
+                - 1 = Green (letter in solution, CORRECT position) 
+                - 2 = Yellow (letters must be used in new positions (not in any previously 2/0 positions for that letter)
+            - Guesses must be valid 5-letter English words (from the NYT's allowed guess list).
+            
+            CURRENT STATE:
+            attempted_words: {attempted_words}
+            attempted_words_results: {attempted_words_results} results will be in list[list[int]]
+            word: {word}
+            letters_in_wrong_position: {letters_in_wrong_position}
+            letters_not_in_word: {letters_not_in_word}
+            
+            word: eg) "s__l_"
+            → Position 0 must be 's'
+            → Position 3 must be 'l'  
+            → Positions 1,2,4 are open (but respect letters_not_in_word)
+            
+            Next guess must match: s[not excluded][not excluded]l[not excluded]
+            
+            ### STRATEGY PRIORITIES (Optimal Play):
+            1. **Strictly obey Hard Mode constraints** — every guess must be compatible with all prior feedback.
+            2. **Maximize information gain**: Choose guesses that split the remaining possible solutions into the most balanced groups (highest expected entropy reduction). This is the mathematically optimal approach.
+            3. If no guesses remain, or to compute candidates efficiently:
+               - Mentally maintain/filter the list of remaining possible answers (original NYT solution list ~2,309-2,315 words, minus used answers).
+               - Prefer guesses that are themselves possible answers when tie-breaking (to allow potential early wins).
+            5. Prioritize words that test multiple uncertain letters/positions while respecting constraints.
+            6. Avoid repeating failed patterns or low-information guesses.
+            
+            For each response:
+            - List the known constraints (1 fixed, must-include 2, banned 0).
+            - If only 1 possibility remains → guess it to win.
+            - If [1,1,1,1,1] achieved → celebrate the win.
+            
+            REASON step-by-step using above state, then output GuessResponse.
             
             Parse the output in this format: {output_format}
             All fields in output are required not null.
-            
-            Current attempts remaining: {remaining_attempts}
-        
 '''

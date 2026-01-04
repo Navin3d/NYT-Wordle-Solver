@@ -36,9 +36,10 @@ print(graph.get_graph().draw_mermaid())
 
 
 inputs = {
+    "word": "_____",
+    "forbidden_locations": {},
     "attempted_words": [],
     "attempted_words_results": [],
-    "letters_in_right_position": [],
     "letters_in_wrong_position": [],
     "letters_not_in_word": [],
     "solved": False,
@@ -54,10 +55,6 @@ config = {
 
 async def run_graph():
     async for event in graph.astream(inputs, config, stream_mode="values"):
-        messages = event.get("context", [])
-        if messages:
-            print(messages)
-            last_msg = messages[-1]
-            print(f"AI: {last_msg.content}")
+        print(event)
 
 asyncio.run(run_graph())

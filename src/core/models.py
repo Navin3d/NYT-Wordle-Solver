@@ -4,9 +4,10 @@ from pydantic import BaseModel, Field
 
 
 class WordleState(TypedDict):
+    word: str
     attempted_words: Annotated[list[str], add]
     attempted_words_results: Annotated[list[list[int]], add]
-    letters_in_right_position: list[str]
+    forbidden_locations: dict[str, list[int]]
     letters_in_wrong_position: list[str]
     letters_not_in_word: list[str]
     remaining_attempts: Annotated[int, add]
