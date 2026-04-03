@@ -1,20 +1,38 @@
-from src.agents.prompts import wordle_chain
-from src.core.models import WordleState, GuessResponse
-from src.core.nyt_wordle import NYTWordleSolver
+from agents.prompts import wordle_chain
+from core.models import WordleState, GuessResponse
+from core.nyt_wordle import NYTWordleSolver
 
 wordle = NYTWordleSolver()
 
+_INVOKE_PAYLOAD_KEYS = [
+    "attempted_words", "forbidden_locations", "word",
+    "letters_in_wrong_position", "letters_not_in_word", "attempted_words_results",
+]
+
 def word_guess_node(state: WordleState):
-    output: GuessResponse = wordle_chain.invoke({
-        "attempted_words": state["attempted_words"],
-        "forbidden_locations": state["forbidden_locations"],
-        "word": state["word"],
-        "letters_in_wrong_position": state["letters_in_wrong_position"],
-        "letters_not_in_word": state["letters_not_in_word"],
-        "attempted_words_results": state["attempted_words_results"],
-    })
+    payload = {k: state[k] for k in _INVOKE_PAYLOAD_KEYS}
+
+    output: GuessResponse | None = None
+    for attempt in range(3):
+        try:
+            output = wordle_chain.invoke(payload)
+            # Double-check length in case the validator was bypassed
+            if len(output.word) == 5 and output.word.isalpha():
+                break
+            print(f"[RETRY {attempt+1}] LLM returned invalid word '{output.word}' ({len(output.word)} letters). Retrying...")
+        except Exception as e:
+            print(f"[RETRY {attempt+1}] Parsing error: {e}. Retrying...")
+            output = None
+
+    if output is None or len(output.word) != 5:
+        fallback = "crane"  # sensible high-entropy fallback
+        print(f"[FALLBACK] Using fallback word '{fallback}' after 3 failed attempts.")
+        word = fallback
+    else:
+        word = output.word
+
     return {
-        "attempted_words": [output.word],
+        "attempted_words": [word],
         "remaining_attempts": 1,
         "solved": False,
     }

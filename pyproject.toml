@@ -1,7 +1,7 @@
 [project]
 name = "nyt-wordle-solver"
 version = "0.1.0"
-description = "Add your description here"
+description = "LangGraph-powered AI agent that solves the NYT Wordle puzzle daily"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -16,3 +16,6 @@ dependencies = [
     "python-dotenv>=1.2.1",
     "slack-sdk>=3.39.0",
 ]
+
+[tool.uv]
+package = false

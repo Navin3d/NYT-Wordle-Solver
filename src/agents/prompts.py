@@ -5,7 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableSequence
 from langchain_ollama import ChatOllama
 
-from src.core.models import GuessResponse
+from core.models import GuessResponse
 
 _wordle_output_parser = PydanticOutputParser(pydantic_object=GuessResponse)
 

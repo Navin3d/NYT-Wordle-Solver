@@ -1,6 +1,6 @@
 from langchain.tools import tool
 
-from src.core.nyt_wordle import NYTWordleSolver
+from core.nyt_wordle import NYTWordleSolver
 
 wordle = NYTWordleSolver()
 

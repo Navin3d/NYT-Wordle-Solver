@@ -5,8 +5,8 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_classic.agents import AgentExecutor
 from langchain_classic.agents import create_tool_calling_agent
 
-from src.agents.prompts import llm, result_publish_prompt
-from src.core.models import WordleState
+from agents.prompts import llm, result_publish_prompt
+from core.models import WordleState
 
 _mcp_client = MultiServerMCPClient(
     {
@@ -25,7 +25,6 @@ NODE_NAMES = {
 tools = asyncio.run(_mcp_client.get_tools())
 
 async def result_publish_node(state: WordleState):
-    print(state)
     agent = create_tool_calling_agent(llm=llm, tools=tools, prompt=ChatPromptTemplate.from_messages([
         (
             "system",

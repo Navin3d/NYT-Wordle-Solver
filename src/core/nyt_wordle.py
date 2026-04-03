@@ -11,6 +11,7 @@ class NYTWordleSolver:
     def _get_solution(self) -> str:
         date = datetime.date.today()
         url = f"https://www.nytimes.com/svc/wordle/v2/{date:%Y-%m-%d}.json"
+        # url = f"https://www.nytimes.com/svc/wordle/v2/2026-03-01.json"
         response = requests.get(url).json()
         return response['solution']
 
