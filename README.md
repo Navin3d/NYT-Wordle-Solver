@@ -1,96 +1,109 @@
-# 🧩 NYT Wordle AI Solver
+﻿# 🧩 NYT Wordle AI Solver
 
 [![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://www.python.org/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-Agentic_Workflows-orange.svg)](https://langchain-ai.github.io/langgraph/)
 [![Package Manager: uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
-A cutting-edge AI agent powered by **LangGraph** designed to solve the daily New York Times Wordle puzzle with human-like reasoning and strategic guessing.
+A LangGraph-powered AI agent built to solve the daily New York Times Wordle puzzle using a structured workflow and MCP-enabled publishing.
 
 ---
 
 ## ✨ Features
 
--   **🧠 Graph-Based Intelligence**: Orchestrates guesses and validations using a cyclic directed graph via **LangGraph**.
--   **🛠️ MCP Integration**: Built-in support for Model Context Protocol (MCP) to interact with external tools.
--   **💬 Slack Integration**: Automatically publishes the day's solution grid to your Slack channels.
--   **🎨 Rich Terminal UI**: Features a beautiful console experience with real-time spinners, colored logs, and progress tracking.
--   **⚡ Powered by uv**: Ultra-fast dependency management and execution.
+-   **🧠 Graph-Based Intelligence**: Uses a LangGraph workflow to manage guessing, validation, and publishing.
+-   **🛠️ MCP Integration**: Publishes results through external MCP tools.
+-   **💬 Slack Publishing**: Sends the Wordle result grid to Slack.
+-   **🎨 Rich Terminal UI**: Uses Rich for live feedback and polished output.
+-   **🧱 Modular Codebase**: Clear separation between game logic, prompts, solver nodes, and publishing.
+
+---
+
+## 🚀 Project Structure
+
+-   `src/app.py` — main application entrypoint
+-   `src/core/game.py` — Wordle game rules, feedback, and grid rendering
+-   `src/core/graph_builder.py` — LangGraph workflow construction and node transitions
+-   `src/agents/prompts.py` — LLM prompt templates and chain configuration
+-   `src/agents/solver.py` — solver node implementations for guessing and validation
+-   `src/agents/publisher.py` — MCP publisher node
 
 ---
 
 ## 🏗️ Architecture
 
-The solver operates as a state machine with three primary nodes:
+The solver runs as a three-node state machine:
 
 ```mermaid
 graph TD;
-        __start__([<p>__start__</p>]):::first
-        GUESS(GUESS)
-        VALIDATE(VALIDATE)
-        PUBLISH(PUBLISH)
-        __end__([<p>__end__</p>]):::last
-        GUESS --> VALIDATE;
-        VALIDATE -.-> GUESS;
-        VALIDATE -.-> PUBLISH;
-        __start__ --> GUESS;
-        PUBLISH --> __end__;
-        classDef default fill:#f2f0ff,line-height:1.2
-        classDef first fill-opacity:0
-        classDef last fill:#bfb6fc
+    __start__([__start__])
+    GUESS(GUESS)
+    VALIDATE(VALIDATE)
+    PUBLISH(PUBLISH)
+    __end__([__end__])
+
+    __start__ --> GUESS;
+    GUESS --> VALIDATE;
+    VALIDATE -.-> GUESS;
+    VALIDATE -.-> PUBLISH;
+    PUBLISH --> __end__;
 ```
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
--   [uv](https://github.com/astral-sh/uv) installed on your system.
--   An OpenAI API Key or a local [Ollama](https://ollama.com/) instance.
+-   [uv](https://github.com/astral-sh/uv)
+-   A compatible LLM backend configured via `MODEL_NAME`
+-   A local or remote MCP endpoint
 
 ### Installation
 
-1.  **Clone the repository:**
+1.  Clone the repository:
     ```bash
     git clone https://github.com/Navin3d/NYT-Wordle-Solver.git
     cd NYT-Wordle-Solver
     ```
 
-2.  **Install dependencies:**
+2.  Install dependencies:
     ```bash
     uv sync
     ```
 
-3.  **Configure environment:**
-    Create a `.env` file in the `src` directory:
+3.  Configure environment variables by creating `src/.env`:
     ```env
     SLACK_BOT_TOKEN=xoxb-111111-22221222-jhghg
-	SLACK_CHANNEL_ID=#general
-	MODEL_NAME=gemma4:latest
+    SLACK_CHANNEL_ID=#general
+    MODEL_NAME=gemma4:latest
     ```
+
+> The current publisher module is configured to use an MCP service at `http://localhost:8010/mcp`.
 
 ---
 
-## 🎮 Usage
+##  Usage
 
-Run the solver directly from the project root:
+Run the solver from the project root:
 
 ```bash
-uv run python src/main.py
+uv run python src/app.py
 ```
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
--   **Logic**: [LangGraph](https://github.com/langchain-ai/langgraph) / [LangChain](https://github.com/langchain-ai/langchain)
--   **Language**: Python 3.13
--   **UI**: [Rich](https://github.com/Textualize/rich)
--   **Package Manager**: [uv](https://github.com/astral-sh/uv)
--   **MCP**: [FastMCP](https://github.com/jlowin/fastmcp)
+-   **LangGraph** / **LangChain**
+-   **Python 3.13**
+-   **Rich**
+-   **uv**
+-   **FastMCP**
+
+---
 
 ## References
-- [Wordle Solver](https://www.nytimes.com/svc/wordle/v2/2026-01-01.json)
-- [Fast MCP](https://gofastmcp.com/getting-started/quickstart)
-- [Mermaid to PIC](https://www.mermaidflow.app/editor)
-- [Excali Draw](https://excalidraw.com/)
+
+-   [NYT Wordle JSON endpoint](https://www.nytimes.com/svc/wordle/v2/2026-01-01.json)
+-   [Fast MCP Quickstart](https://gofastmcp.com/getting-started/quickstart)
+-   [Mermaid.js](https://mermaid-js.github.io/mermaid/#/)
