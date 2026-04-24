@@ -1,5 +1,6 @@
 import datetime
 import requests
+import json
 
 INITIAL_WORD_PATTERN = "_____"
 
@@ -10,6 +11,26 @@ class NYTWordleSolver:
         self.yellow = chr(0x1F7E8)
         self.white = chr(0x2B1C)
         self.solution = self._get_solution()
+        self.previous_solutions = self._init_previous_solutions()
+
+    def _init_previous_solutions(self) -> list[str]:
+        with open("scrapping/wordle_answers.json", "r") as f:
+            return json.load(f)
+
+    def get_previous_solutions(self) -> list[str]:
+        return self.previous_solutions
+
+    def is_word_in_previous_answers(self, guessword: str) -> bool:
+        """
+        Checks if a word has been used as a previous answer in Wordle.
+
+        Args:
+            guessword: The word to check.
+
+        Returns:
+            True if the word has been used as a previous answer, False otherwise.
+        """
+        return guessword.upper() in self.get_previous_solutions()
 
     def _get_solution(self) -> str:
         date = datetime.date.today()

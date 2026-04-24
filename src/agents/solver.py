@@ -16,13 +16,24 @@ _INVOKE_PAYLOAD_KEYS = [
 wordle = NYTWordleSolver()
 
 def word_guess_node(state: WordleState):
-    payload = {key: state[key] for key in _INVOKE_PAYLOAD_KEYS}
+    # payload = {key: state[key] for key in _INVOKE_PAYLOAD_KEYS}
     output: GuessResponse | None = None
+    past_solutions = []
 
-    for attempt in range(3):
+    for attempt in range(180):
+        # print("Attempted words: ", state["attempted_words"])
+        # print("Past solutions: ", state["past_solutions"])
         try:
-            output = wordle_chain.invoke(payload)
+            output = wordle_chain.invoke(dict(state))
             if output is not None and len(output.word) == 5 and output.word.isalpha():
+                if wordle.is_word_in_previous_answers(output.word):
+                    state["past_solutions"].append(output.word)
+                    print(
+                        f"[RETRY {attempt+1}] LLM returned word '{output.word}' "
+                        f"which was already published by NYT. Retrying..."
+                    )
+                    past_solutions.append(output.word)
+                    continue
                 break
             if output is not None:
                 print(
@@ -41,8 +52,9 @@ def word_guess_node(state: WordleState):
         word = output.word
 
     return {
-        "attempted_words": state["attempted_words"] + [word],
-        "remaining_attempts": state["remaining_attempts"],
+        "attempted_words": [word],
+        # "remaining_attempts": state["remaining_attempts"],
+        # "past_solutions": past_solutions,
         "solved": False,
     }
 
@@ -75,7 +87,7 @@ def validate_guess_node(state: WordleState):
         "letters_in_wrong_position": updated_wrong_position,
         "letters_not_in_word": list(set(state["letters_not_in_word"] + truly_absent)),
         "forbidden_locations": new_forbidden,
-        "attempted_words": state["attempted_words"],
+        # "attempted_words": state["attempted_words"],
         "attempted_words_results": state["attempted_words_results"] + [validation],
         "remaining_attempts": max(state["remaining_attempts"] - 1, 0),
         "solved": validation == [1, 1, 1, 1, 1],

@@ -10,9 +10,10 @@ class WordleState(TypedDict):
     forbidden_locations: dict[str, list[int]]
     letters_in_wrong_position: list[str]
     letters_not_in_word: list[str]
-    remaining_attempts: Annotated[int, add]
+    remaining_attempts: int
     solved: bool
     solution_grid: Annotated[str, ""]
+    past_solutions: Annotated[list[str], add]
 
 
 class GuessResponse(BaseModel):

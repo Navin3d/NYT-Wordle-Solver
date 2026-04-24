@@ -5,6 +5,7 @@ description = "LangGraph-powered AI agent that solves the NYT Wordle puzzle dail
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "bs4>=0.0.2",
     "dotenv>=0.9.9",
     "fastmcp>=2.14.1",
     "langchain>=1.2.0",

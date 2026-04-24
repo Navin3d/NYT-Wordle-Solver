@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 
 from langchain_core.output_parsers import PydanticOutputParser
@@ -18,13 +19,15 @@ _wordle_guessing_prompt = ChatPromptTemplate.from_messages([
             ### CRITICAL CONSTRAINT: WORD LENGTH
             - The "word" field MUST be EXACTLY 5 letters long and lowercase.
             - Do not return underscores or partial words. Return a complete 5-letter English word.
+            - Think basic english words and dont make some complicated words initially. Use words that can be guessed by an average person.
 
             ### HARD MODE RULES
             - Use fixed letters from {word}.
             - Avoid letters from {letters_not_in_word}.
             - Include letters from {letters_in_wrong_position}.
-            - Do not place yellow letters in the same position again.
+            - **IMPORTANT: Do not place yellow letters in the same position again.
             - Respect {forbidden_locations}.
+            - Do not use words that have been used as answers in past wordle past_solutions: {past_solutions}
 
             ### OUTPUT
             Return ONLY valid JSON using the format instructions.
@@ -51,6 +54,15 @@ result_publish_prompt = ChatPromptTemplate.from_messages([
             2. Create a NYT comment that is short and expressive.
             3. Call MCP tools in sequence: send_message_to_slack(message) then post_comment_in_nyt(message).
 
+            On date 24-04-2026 the wordle id is 1,770 Todays date is {date} calculate the id
+            Print id one new line and then just grip nothing else in the output. Do not include any other text or formatting or extra emojis
+
+            Return message should be in format
+            Example: 
+                Wordle 1,770 attempt number/6
+
+                <solution grid>
+
             RULES:
             - Slack should include attempt count and the emoji grid.
             - NYT should be compact and friendly.
@@ -58,7 +70,7 @@ result_publish_prompt = ChatPromptTemplate.from_messages([
         """
     ),
     MessagesPlaceholder("agent_scratchpad"),
-])
+]).partial(date=datetime.now().strftime("%d-%m-%Y"))
 
 llm = ChatOllama(
     model=os.environ["MODEL_NAME"],
