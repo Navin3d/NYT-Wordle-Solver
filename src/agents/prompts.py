@@ -19,18 +19,23 @@ _wordle_guessing_prompt = ChatPromptTemplate.from_messages([
             ### CRITICAL CONSTRAINT: WORD LENGTH
             - The "word" field MUST be EXACTLY 5 letters long and lowercase.
             - Do not return underscores or partial words. Return a complete 5-letter English word.
-            - Think basic english words and dont make some complicated words initially. Use words that can be guessed by an average person.
+            - Prefer common, simple English words that an average person might guess. Avoid obscure or complex words initially.
 
-            ### HARD MODE RULES
-            - Use fixed letters from {word}.
-            - Avoid letters from {letters_not_in_word}.
-            - Include letters from {letters_in_wrong_position}.
-            - **IMPORTANT: Do not place yellow letters in the same position again.
-            - Respect {forbidden_locations}.
-            - Do not use words that have been used as answers in past wordle past_solutions: {past_solutions}
+            ### HARD MODE RULES (MANDATORY)
+            - **Fixed Letters**: Use the exact letters from {word} in their positions (e.g., if {word} is "a___e", position 0 must be 'a', position 4 must be 'e').
+            - **Forbidden Letters**: NEVER use any letters from {letters_not_in_word} in any position.
+            - **Yellow Letters**: MUST include ALL letters from {letters_in_wrong_position} in the new word, but place them in DIFFERENT positions than where they were yellow before.
+            - **Forbidden Positions**: Respect {forbidden_locations} - this is a dictionary where each key is a letter, and the value is a list of positions (0-4) where that letter CANNOT be placed again. For example, if {forbidden_locations} is {{'r': [0, 4]}}, 'r' cannot be at position 0 or 4.
+            - **Past Solutions**: Do not use words that have been used as answers in past Wordle games: {past_solutions}.
+
+            ### REASONING PROCESS
+            1. Start with the fixed letters from {word}.
+            2. Fill in positions with yellow letters ({letters_in_wrong_position}), ensuring they are NOT in their forbidden positions.
+            3. Fill remaining positions with new letters, avoiding {letters_not_in_word} and respecting all forbidden positions.
+            4. Ensure the word is valid English and fits all constraints.
 
             ### OUTPUT
-            Return ONLY valid JSON using the format instructions.
+            Return ONLY valid JSON using the format instructions. Do not include explanations outside the JSON.
         """
     )
 ]).partial(output_format=_wordle_output_parser.get_format_instructions())
@@ -50,27 +55,23 @@ result_publish_prompt = ChatPromptTemplate.from_messages([
             solution_grid: {solution_grid}
 
             WORKFLOW:
-            1. Create a Slack message that includes the full Wordle grid and status.
-            2. Create a NYT comment that is short and expressive.
-            3. Call MCP tools in sequence: send_message_to_slack(message) then post_comment_in_nyt(message).
+            1. Calculate the Wordle ID: On date 24-04-2026, the Wordle ID is 1,770. For today's date ({date}), calculate the ID by adding the number of days since 24-04-2026.
+            2. Calculate attempts_made = 6 - {remaining_attempts}.
+            3. Create a Slack message in the format: "Wordle [ID] [attempts_made]/6\n\n{solution_grid}"
+            4. Create a NYT comment that is short, expressive, and friendly (e.g., "Solved it in [attempts_made] tries!").
+            5. Call MCP tools in sequence: send_message_to_slack(message), send_whatsapp_message(message, contacts={contacts}), then post_comment_in_nyt(message).
 
-            On date 24-04-2026 the wordle id is 1,770 Todays date is {date} calculate the id
-            Print id one new line and then just grip nothing else in the output. Do not include any other text or formatting or extra emojis
-
-            Return message should be in format
-            Example: 
-                Wordle 1,770 attempt number/6
-
-                <solution grid>
-
-            RULES:
-            - Slack should include attempt count and the emoji grid.
-            - NYT should be compact and friendly.
-            - Use attempts_made = 6 - {remaining_attempts}.
+            OUTPUT FORMAT:
+            - Slack message: Wordle [ID] [attempts_made]/6\n\n[solution_grid]
+            - NYT comment: Short and friendly text.
+            - Do not include extra text, emojis, or formatting beyond the messages.
         """
     ),
     MessagesPlaceholder("agent_scratchpad"),
-]).partial(date=datetime.now().strftime("%d-%m-%Y"))
+]).partial(
+    date=datetime.now().strftime("%d-%m-%Y"),
+    contacts=os.environ["WHATSAPP_CONTACTS_TO_SEND"]
+)
 
 llm = ChatOllama(
     model=os.environ["MODEL_NAME"],

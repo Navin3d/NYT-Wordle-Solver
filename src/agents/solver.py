@@ -88,7 +88,7 @@ def validate_guess_node(state: WordleState):
         "letters_not_in_word": list(set(state["letters_not_in_word"] + truly_absent)),
         "forbidden_locations": new_forbidden,
         # "attempted_words": state["attempted_words"],
-        "attempted_words_results": state["attempted_words_results"] + [validation],
+        "attempted_words_results": [validation],
         "remaining_attempts": max(state["remaining_attempts"] - 1, 0),
         "solved": validation == [1, 1, 1, 1, 1],
         "solution_grid": state["solution_grid"] + wordle.get_grid(validation),

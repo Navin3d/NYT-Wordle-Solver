@@ -1,4 +1,5 @@
 import slack
+import whatsapp
 from fastmcp import FastMCP
 
 mcp = FastMCP("Social media MCP Server")
@@ -29,6 +30,21 @@ def send_message_to_slack(message: str):
     """
     slack.send_message_to_slack(message)
     print("Sent message to Slack!")
+
+@mcp.tool(
+    name_or_fn="send_whatsapp_message",
+    description="Sends a WhatsApp message to a list of contacts defined in the environment."
+)
+def send_whatsapp_message(message: str, contacts: str = "+919442807217"):
+    """
+    Sends a WhatsApp message to contacts, Pass messgae and list of numbers as input.
+    
+    Args:
+        message: The message content to send.
+    """    
+    contact_list = [c.strip() for c in contacts.split(",") if c.strip()]
+    whatsapp.send_whatsapp_message(message, contact_list)
+    return f"WhatsApp message sent to {len(contact_list)} contacts!"
 
 @mcp.tool
 def post_comment_in_nyt(comment: str):

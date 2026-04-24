@@ -1,4 +1,4 @@
-﻿# 🧩 NYT Wordle AI Solver
+# 🧩 NYT Wordle AI Solver
 
 [![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://www.python.org/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-Agentic_Workflows-orange.svg)](https://langchain-ai.github.io/langgraph/)
@@ -11,9 +11,11 @@ A LangGraph-powered AI agent built to solve the daily New York Times Wordle puzz
 ## ✨ Features
 
 -   **🧠 Graph-Based Intelligence**: Uses a LangGraph workflow to manage guessing, validation, and publishing.
--   **🛠️ MCP Integration**: Publishes results through external MCP tools.
--   **💬 Slack Publishing**: Sends the Wordle result grid to Slack.
--   **🎨 Rich Terminal UI**: Uses Rich for live feedback and polished output.
+-   **🛠️ MCP Integration**: Publishes results through external MCP tools (Slack, WhatsApp, NYT).
+-   **💬 Slack Publishing**: Sends the Wordle result grid to a configured Slack channel.
+-   **📱 WhatsApp Integration**: Automated WhatsApp messaging using `pywhatkit`.
+-   **📝 NYT Commenting**: Generates and posts friendly comments for the NYT community.
+-   **🎨 Rich Terminal UI**: Provides live feedback and polished terminal output.
 -   **🧱 Modular Codebase**: Clear separation between game logic, prompts, solver nodes, and publishing.
 
 ---
@@ -26,6 +28,8 @@ A LangGraph-powered AI agent built to solve the daily New York Times Wordle puzz
 -   `src/agents/prompts.py` — LLM prompt templates and chain configuration
 -   `src/agents/solver.py` — solver node implementations for guessing and validation
 -   `src/agents/publisher.py` — MCP publisher node
+-   `src/mcp/social-media-mcp.py` — MCP server hosting Slack, WhatsApp, and NYT tools
+-   `src/mcp/whatsapp.py` — WhatsApp messaging utility
 
 ---
 
@@ -75,8 +79,17 @@ graph TD;
     ```env
     SLACK_BOT_TOKEN=xoxb-111111-22221222-jhghg
     SLACK_CHANNEL_ID=#general
+    WHATSAPP_CONTACTS_TO_SEND=+919442807217
     MODEL_NAME=gemma4:latest
     ```
+
+### 🛠️ Running the MCP Server
+
+Before running the solver, start the Social Media MCP server in a separate terminal:
+
+```bash
+uv run python src/mcp/social-media-mcp.py
+```
 
 > The current publisher module is configured to use an MCP service at `http://localhost:8010/mcp`.
 
